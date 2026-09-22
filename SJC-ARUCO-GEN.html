@@ -4,6 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ARUCOGEN</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon.png" type="image/png" sizes="32x32">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <style>
     :root {
       --bg: #0b0c0e;
@@ -14,14 +17,16 @@
       --accent: #e8e2d2;
       --field: #0c0d10;
       --mark: #7d818a;
+      --aside-w: 340px;
     }
     * { box-sizing: border-box; }
-    html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--text); }
+    html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); }
     body {
       font: 15px/1.45 "Segoe UI", system-ui, sans-serif;
       display: grid;
       grid-template-rows: auto 1fr;
-      min-height: 100vh;
+      min-height: 100%;
+      overflow: hidden;
       background:
         linear-gradient(180deg, #12141a 0%, var(--bg) 28%),
         repeating-conic-gradient(#14161a 0% 25%, #0b0c0e 0% 50%) 0 0 / 28px 28px;
@@ -53,22 +58,73 @@
     header p { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
     .app {
       display: grid;
-      grid-template-columns: 340px 1fr;
+      grid-template-columns: minmax(0, var(--aside-w)) 10px minmax(0, 1fr);
       min-height: 0;
+      min-width: 0;
+      overflow: hidden;
     }
     aside {
-      padding: 18px 20px 22px;
-      border-right: 1px solid var(--line);
+      min-width: 0;
+      min-height: 0;
+      padding: 16px 14px 14px;
+      border-right: 0;
       background: var(--panel);
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      overflow: hidden;
     }
+    .aside-scroll {
+      flex: 1;
+      min-height: 0;
+      min-width: 0;
+      overflow-x: hidden;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding-right: 4px;
+      scrollbar-width: thin;
+      scrollbar-color: #3a3d46 transparent;
+    }
+    .aside-scroll::-webkit-scrollbar { width: 8px; }
+    .aside-scroll::-webkit-scrollbar-thumb {
+      background: #3a3d46;
+      border-radius: 8px;
+    }
+    .split {
+      width: 10px;
+      margin: 0;
+      padding: 0;
+      border: 0;
+      background: var(--panel);
+      cursor: col-resize;
+      position: relative;
+      touch-action: none;
+      flex: none;
+    }
+    .split::before {
+      content: "";
+      position: absolute;
+      top: 12px;
+      bottom: 12px;
+      left: 4px;
+      width: 2px;
+      border-radius: 1px;
+      background: var(--line);
+    }
+    .split:hover::before,
+    .split:focus-visible::before,
+    body.resizing .split::before {
+      background: var(--accent);
+    }
+    body.resizing, body.resizing * { cursor: col-resize !important; }
+    body.resizing { user-select: none; }
     .group {
       display: grid;
       gap: 10px;
       padding-bottom: 14px;
       border-bottom: 1px solid var(--line);
+      min-width: 0;
     }
     .group:last-of-type { border-bottom: 0; padding-bottom: 0; }
     .group h2 {
@@ -86,6 +142,7 @@
       color: var(--muted);
       letter-spacing: 0.06em;
       text-transform: uppercase;
+      min-width: 0;
     }
     input, select {
       background: var(--field);
@@ -95,6 +152,13 @@
       padding: 10px 12px;
       font: inherit;
       color-scheme: dark;
+      width: 100%;
+      min-width: 0;
+      max-width: 100%;
+    }
+    select {
+      text-overflow: ellipsis;
+      overflow: hidden;
     }
     input:focus, select:focus {
       outline: 2px solid #5c616c;
@@ -105,12 +169,15 @@
       padding: 4px;
       height: 42px;
       width: 56px;
+      min-width: 56px;
+      flex: none;
       cursor: pointer;
     }
-    .row { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: end; }
+    .row { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 8px; align-items: end; }
     .times { color: var(--muted); padding-bottom: 10px; }
-    .color-row, .grey-row { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; }
-    .grey-row { grid-template-columns: 1fr 72px; }
+    .color-row, .grey-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: center; min-width: 0; }
+    .grey-row { grid-template-columns: minmax(0, 1fr) 72px; }
+    .seed-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; min-width: 0; }
     .hex { font-family: ui-monospace, Consolas, monospace; letter-spacing: 0.04em; }
     .linkish {
       background: transparent;
@@ -122,6 +189,8 @@
       letter-spacing: 0.06em;
       text-transform: uppercase;
       cursor: pointer;
+      white-space: nowrap;
+      flex: none;
     }
     .linkish:hover { color: var(--text); border-color: #4a4f5a; }
     .swatch {
@@ -132,8 +201,9 @@
     }
     .seg {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
       gap: 6px;
+      min-width: 0;
     }
     .seg button {
       margin: 0;
@@ -141,12 +211,21 @@
       color: var(--muted);
       border: 1px solid var(--line);
       border-radius: 8px;
-      padding: 10px 12px;
-      font: 650 13px/1 "Segoe UI", system-ui, sans-serif;
+      padding: 10px 8px;
+      font: 650 13px/1.2 "Segoe UI", system-ui, sans-serif;
+      cursor: pointer;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .seg button.on {
+      background: var(--accent);
+      color: #161616;
+      border-color: var(--accent);
     }
     .seg.tight { grid-template-columns: 1fr 1fr; }
     .hidden { display: none !important; }
-    .hint { color: var(--muted); font-size: 12px; letter-spacing: 0; text-transform: none; }
+    .hint { color: var(--muted); font-size: 12px; letter-spacing: 0; text-transform: none; overflow-wrap: anywhere; }
     .filter { padding: 8px 12px; }
     .stats {
       padding: 10px 12px;
@@ -156,10 +235,14 @@
       font-size: 12px;
       line-height: 1.55;
       background: var(--field);
+      overflow-wrap: anywhere;
+      min-width: 0;
     }
     .stats strong { color: var(--text); font-weight: 600; }
     .go {
-      margin-top: auto;
+      margin-top: 12px;
+      width: 100%;
+      flex: none;
       background: var(--accent);
       color: #161616;
       border: 0;
@@ -216,8 +299,18 @@
       display: block;
     }
     @media (max-width: 820px) {
-      .app { grid-template-columns: 1fr; }
-      aside { border-right: 0; border-bottom: 1px solid var(--line); }
+      body { overflow: auto; height: auto; min-height: 100%; }
+      .app {
+        grid-template-columns: 1fr;
+        overflow: visible;
+      }
+      .split { display: none; }
+      aside {
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+        overflow: visible;
+      }
+      .aside-scroll { overflow: visible; flex: none; }
     }
   </style>
 </head>
@@ -231,6 +324,7 @@
   </header>
   <div class="app">
     <aside>
+      <div class="aside-scroll">
       <div class="group">
         <h2>Sheet</h2>
         <div>
@@ -290,6 +384,13 @@
             <option value="6x6">6×6 (OpenCV DICT_6X6_1000)</option>
           </select>
         </label>
+        <label>Seed
+          <div class="seed-row">
+            <input id="seed" type="text" inputmode="numeric" placeholder="Blank = 0, 1, 2…" spellcheck="false" autocomplete="off">
+            <button class="linkish" id="randomize" type="button">Randomize</button>
+          </div>
+        </label>
+        <div class="hint">Randomize keeps the same sheet and picks a new unique set. Re-enter a seed to get that set back.</div>
       </div>
       <div class="group">
         <h2>Ink</h2>
@@ -300,13 +401,31 @@
             <button class="linkish" id="bgReset" type="button">Black</button>
           </div>
         </label>
-        <label>Marker grey
-          <div class="grey-row">
-            <input id="grey" type="range" min="0" max="255" value="128">
-            <input id="greyNum" type="number" min="0" max="255" value="128">
+        <div>
+          <div class="hint" style="margin-bottom:6px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">Marker</div>
+          <div class="seg" id="inkMode" role="group" aria-label="Marker color mode">
+            <button type="button" data-ink-mode="grey" class="on">Grey</button>
+            <button type="button" data-ink-mode="color">Color</button>
           </div>
+        </div>
+        <div id="greyWrap">
+          <label>Grey
+            <div class="grey-row">
+              <input id="grey" type="range" min="0" max="255" value="128">
+              <input id="greyNum" type="number" min="0" max="255" value="128">
+            </div>
+          </label>
           <div class="swatch" id="swatch"></div>
-        </label>
+        </div>
+        <div id="inkColorWrap" class="hidden">
+          <label>Color
+            <div class="color-row">
+              <input id="ink" type="color" value="#808080" title="Marker color">
+              <input id="inkHex" class="hex" type="text" value="#808080" maxlength="7" spellcheck="false">
+              <button class="linkish" id="inkReset" type="button">Grey</button>
+            </div>
+          </label>
+        </div>
       </div>
       <div class="group">
         <h2>Export</h2>
@@ -320,8 +439,10 @@
       </div>
       <div class="stats" id="stats">Set a count and canvas size.</div>
       <div class="err" id="err"></div>
+      </div>
       <button class="go" id="download" type="button">Download PNG</button>
     </aside>
+    <div class="split" id="split" role="separator" aria-orientation="vertical" aria-label="Resize controls" tabindex="0"></div>
     <main>
       <div class="stage">
         <div class="caption"><span>Preview</span><span id="captionSize">3840 × 2160</span></div>
@@ -361,12 +482,20 @@
       ledCols: document.getElementById("ledCols"),
       ledRows: document.getElementById("ledRows"),
       dict: document.getElementById("dict"),
+      seed: document.getElementById("seed"),
+      randomize: document.getElementById("randomize"),
       bg: document.getElementById("bg"),
       bgHex: document.getElementById("bgHex"),
       bgReset: document.getElementById("bgReset"),
+      inkMode: document.getElementById("inkMode"),
+      greyWrap: document.getElementById("greyWrap"),
+      inkColorWrap: document.getElementById("inkColorWrap"),
       grey: document.getElementById("grey"),
       greyNum: document.getElementById("greyNum"),
       swatch: document.getElementById("swatch"),
+      ink: document.getElementById("ink"),
+      inkHex: document.getElementById("inkHex"),
+      inkReset: document.getElementById("inkReset"),
       stats: document.getElementById("stats"),
       err: document.getElementById("err"),
       download: document.getElementById("download"),
@@ -377,6 +506,7 @@
     let fileFmt = "png";
     let countMode = "density";
     let sizeMode = "led";
+    let inkMode = "grey";
 
     function fillPanelSelect() {
       const panels = window.LED_PANELS || [];
@@ -411,6 +541,8 @@
       els.countWrap.classList.toggle("hidden", countMode !== "custom");
       els.ledWrap.classList.toggle("hidden", sizeMode !== "led");
       els.resWrap.classList.toggle("hidden", sizeMode !== "resolution");
+      els.greyWrap.classList.toggle("hidden", inkMode !== "grey");
+      els.inkColorWrap.classList.toggle("hidden", inkMode !== "color");
     }
 
     function sheetSize() {
@@ -481,14 +613,69 @@
       return bits;
     }
 
-    function parseHex(raw) {
+    function parseHex(raw, label) {
       let s = String(raw || "").trim();
       if (!s.startsWith("#")) s = "#" + s;
       if (/^#[0-9a-f]{3}$/i.test(s)) {
         s = "#" + [...s.slice(1)].map(c => c + c).join("");
       }
-      if (!/^#[0-9a-f]{6}$/i.test(s)) throw new Error("Background color should look like #000000.");
+      if (!/^#[0-9a-f]{6}$/i.test(s)) throw new Error((label || "Color") + " should look like #000000.");
       return s.toLowerCase();
+    }
+
+    function rgbToHex(r, g, b) {
+      return "#" + [r, g, b].map(n => n.toString(16).padStart(2, "0")).join("");
+    }
+
+    function greyHex() {
+      const grey = Math.max(0, Math.min(255, Math.round(num(els.grey, 128))));
+      return rgbToHex(grey, grey, grey);
+    }
+
+    const DICT_SIZE = 1000;
+
+    function mulberry32(seed) {
+      let a = seed >>> 0;
+      return function () {
+        a |= 0;
+        a = a + 0x6D2B79F5 | 0;
+        let t = Math.imul(a ^ a >>> 15, 1 | a);
+        t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+      };
+    }
+
+    function newSeed() {
+      const buf = new Uint32Array(1);
+      crypto.getRandomValues(buf);
+      return buf[0];
+    }
+
+    function parseSeed(raw) {
+      const s = String(raw || "").trim();
+      if (!s) return null;
+      if (!/^\d+$/.test(s)) throw new Error("Seed should be a whole number.");
+      const n = Number(s);
+      if (n > 0xFFFFFFFF) throw new Error("Seed is too large.");
+      return n;
+    }
+
+    function shuffledIds(count, seed) {
+      const ids = Array.from({ length: DICT_SIZE }, (_, i) => i);
+      const rand = mulberry32(seed >>> 0);
+      for (let i = ids.length - 1; i > 0; i--) {
+        const j = Math.floor(rand() * (i + 1));
+        const tmp = ids[i];
+        ids[i] = ids[j];
+        ids[j] = tmp;
+      }
+      return ids.slice(0, count);
+    }
+
+    function markerIds(count) {
+      const seed = parseSeed(els.seed.value);
+      if (seed == null) return { ids: Array.from({ length: count }, (_, i) => i), seed: null };
+      return { ids: shuffledIds(count, seed), seed };
     }
 
     function layout() {
@@ -508,7 +695,10 @@
         count = Math.round(num(els.count, 0));
       }
       const grey = Math.round(num(els.grey, 128));
-      const bg = parseHex(els.bgHex.value || els.bg.value);
+      const ink = inkMode === "grey"
+        ? `rgb(${grey},${grey},${grey})`
+        : parseHex(els.inkHex.value || els.ink.value, "Marker color");
+      const bg = parseHex(els.bgHex.value || els.bg.value, "Background color");
       const dictName = els.dict.value;
       const info = DICT_INFO[dictName];
       if (!(count >= 1 && count <= 1000)) {
@@ -533,7 +723,8 @@
         modulePx = Math.max(1, Math.floor(maxSide / modules));
         markerPx = modulePx * modules;
       }
-      return { count, density, size, width, height, grey, bg, dictName, info, cols, rows, cellW, cellH, originX, originY, bits, modules, modulePx, markerPx };
+      const { ids, seed } = markerIds(count);
+      return { count, density, size, width, height, grey, ink, bg, dictName, info, cols, rows, cellW, cellH, originX, originY, bits, modules, modulePx, markerPx, ids, seed };
     }
 
     function draw() {
@@ -546,7 +737,7 @@
         return;
       }
       els.download.disabled = false;
-      els.swatch.style.background = `rgb(${opt.grey}, ${opt.grey}, ${opt.grey})`;
+      if (els.swatch) els.swatch.style.background = opt.ink;
       els.captionSize.textContent = `${opt.width} × ${opt.height}`;
       const area = opt.size.widthM != null
         ? `${opt.size.widthM.toFixed(2)}×${opt.size.heightM.toFixed(2)} m`
@@ -557,11 +748,15 @@
       const wallLine = opt.size.panel
         ? `${opt.size.panel.model} · ${opt.size.ledCols}×${opt.size.ledRows} cabinets<br>`
         : "";
+      const idLine = opt.seed == null
+        ? `IDs <strong>0–${opt.count - 1}</strong>`
+        : `IDs shuffled · seed <strong>${opt.seed}</strong>`;
       els.stats.innerHTML =
         `${countLine}<br>` +
         wallLine +
         `canvas <strong>${opt.width}×${opt.height}</strong> · ${area}<br>` +
-        `grid <strong>${opt.cols}×${opt.rows}</strong> · marker ${opt.markerPx}px`;
+        `grid <strong>${opt.cols}×${opt.rows}</strong> · marker ${opt.markerPx}px<br>` +
+        idLine;
       els.download.textContent = fileFmt === "jpg" ? "Download JPG" : "Download PNG";
 
       const canvas = els.sheet;
@@ -571,13 +766,14 @@
       const ctx = canvas.getContext("2d");
       ctx.fillStyle = opt.bg;
       ctx.fillRect(0, 0, opt.width, opt.height);
-      ctx.fillStyle = `rgb(${opt.grey},${opt.grey},${opt.grey})`;
+      ctx.fillStyle = opt.ink;
 
       const dict = DICTS[opt.dictName];
       const lastRowCount = opt.count - (opt.rows - 1) * opt.cols;
-      for (let id = 0; id < opt.count; id++) {
-        const row = Math.floor(id / opt.cols);
-        const col = id % opt.cols;
+      for (let slot = 0; slot < opt.count; slot++) {
+        const id = opt.ids[slot];
+        const row = Math.floor(slot / opt.cols);
+        const col = slot % opt.cols;
         const rowCount = row === opt.rows - 1 ? lastRowCount : opt.cols;
         const rowPadX = Math.floor((opt.cols - rowCount) * opt.cellW / 2);
         const x0 = opt.originX + rowPadX + col * opt.cellW + Math.floor((opt.cellW - opt.markerPx) / 2);
@@ -595,9 +791,16 @@
     }
 
     function setBg(hex) {
-      const v = parseHex(hex);
+      const v = parseHex(hex, "Background color");
       els.bg.value = v;
       els.bgHex.value = v;
+      draw();
+    }
+
+    function setInk(hex) {
+      const v = parseHex(hex, "Marker color");
+      els.ink.value = v;
+      els.inkHex.value = v;
       draw();
     }
 
@@ -629,6 +832,20 @@
       syncModes();
       draw();
     });
+    els.inkMode.addEventListener("click", e => {
+      const btn = e.target.closest("button[data-ink-mode]");
+      if (!btn) return;
+      const next = btn.dataset.inkMode;
+      if (next === "color" && inkMode !== "color") {
+        const hex = greyHex();
+        els.ink.value = hex;
+        els.inkHex.value = hex;
+      }
+      inkMode = next;
+      els.inkMode.querySelectorAll("button").forEach(b => b.classList.toggle("on", b === btn));
+      syncModes();
+      draw();
+    });
     els.panelFilter.addEventListener("input", () => {
       const q = els.panelFilter.value.trim().toLowerCase();
       for (const opt of els.panel.querySelectorAll("option")) {
@@ -643,6 +860,24 @@
       catch (e) { els.err.textContent = e.message; }
     });
     els.bgReset.addEventListener("click", () => setBg("#000000"));
+    els.ink.addEventListener("input", () => setInk(els.ink.value));
+    els.inkHex.addEventListener("change", () => {
+      try { setInk(els.inkHex.value); }
+      catch (e) { els.err.textContent = e.message; }
+    });
+    els.inkReset.addEventListener("click", () => setInk("#808080"));
+    els.seed.addEventListener("change", draw);
+    els.seed.addEventListener("keydown", e => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        els.seed.blur();
+        draw();
+      }
+    });
+    els.randomize.addEventListener("click", () => {
+      els.seed.value = String(newSeed());
+      draw();
+    });
     els.fmt.addEventListener("click", e => {
       const btn = e.target.closest("button[data-fmt]");
       if (!btn) return;
@@ -654,7 +889,8 @@
       try {
         const opt = layout();
         const ext = fileFmt === "jpg" ? "jpg" : "png";
-        downloadCanvas(els.sheet, `aruco_${opt.count}_${opt.width}x${opt.height}.${ext}`, ext);
+        const seedPart = opt.seed == null ? "" : `_s${opt.seed}`;
+        downloadCanvas(els.sheet, `aruco_${opt.count}_${opt.width}x${opt.height}${seedPart}.${ext}`, ext);
       } catch (e) {
         els.err.textContent = e.message;
       }
@@ -688,6 +924,62 @@
     fillPanelSelect();
     syncModes();
     draw();
+
+    const ASIDE_MIN = 260;
+    const ASIDE_MAX = 720;
+    const split = document.getElementById("split");
+    const appEl = document.querySelector(".app");
+
+    function clampAside(px) {
+      const room = Math.max(ASIDE_MIN, (appEl?.clientWidth || 900) - 240);
+      return Math.round(Math.min(ASIDE_MAX, room, Math.max(ASIDE_MIN, px)));
+    }
+
+    function setAsideWidth(px, persist) {
+      const w = clampAside(px);
+      document.documentElement.style.setProperty("--aside-w", w + "px");
+      if (split) {
+        split.setAttribute("aria-valuenow", String(w));
+        split.setAttribute("aria-valuemin", String(ASIDE_MIN));
+        split.setAttribute("aria-valuemax", String(ASIDE_MAX));
+      }
+      if (persist) {
+        try { localStorage.setItem("arucogen-aside", String(w)); } catch {}
+      }
+      return w;
+    }
+
+    try {
+      const saved = Number(localStorage.getItem("arucogen-aside"));
+      if (Number.isFinite(saved) && saved >= ASIDE_MIN) setAsideWidth(saved, false);
+    } catch {}
+
+    if (split) {
+      split.addEventListener("pointerdown", e => {
+        if (e.button !== 0) return;
+        e.preventDefault();
+        split.setPointerCapture(e.pointerId);
+        document.body.classList.add("resizing");
+        const left = appEl.getBoundingClientRect().left;
+        const onMove = ev => setAsideWidth(ev.clientX - left, false);
+        const onUp = () => {
+          document.body.classList.remove("resizing");
+          split.removeEventListener("pointermove", onMove);
+          split.removeEventListener("pointerup", onUp);
+          split.removeEventListener("pointercancel", onUp);
+          const cur = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--aside-w")) || 340;
+          setAsideWidth(cur, true);
+        };
+        split.addEventListener("pointermove", onMove);
+        split.addEventListener("pointerup", onUp);
+        split.addEventListener("pointercancel", onUp);
+      });
+      split.addEventListener("keydown", e => {
+        const cur = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--aside-w")) || 340;
+        if (e.key === "ArrowLeft") { e.preventDefault(); setAsideWidth(cur - 16, true); }
+        if (e.key === "ArrowRight") { e.preventDefault(); setAsideWidth(cur + 16, true); }
+      });
+    }
   </script>
 </body>
 </html>

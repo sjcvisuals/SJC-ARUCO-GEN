@@ -2,4 +2,6 @@ bin/
 obj/
 *.user
 *.png
+!favicon.png
+!apple-touch-icon.png
 _cabinets_src/
