@@ -436,6 +436,10 @@
             <button type="button" data-fmt="jpg">JPG</button>
           </div>
         </div>
+        <label>Sheets
+          <input id="batch" type="number" min="1" max="30" value="1">
+        </label>
+        <div class="hint">Set more than 1 to download a zip of unique seeds, same layout and ink.</div>
       </div>
       <div class="stats" id="stats">Set a count and canvas size.</div>
       <div class="err" id="err"></div>
@@ -499,6 +503,7 @@
       stats: document.getElementById("stats"),
       err: document.getElementById("err"),
       download: document.getElementById("download"),
+      batch: document.getElementById("batch"),
       sheet: document.getElementById("sheet"),
       captionSize: document.getElementById("captionSize"),
       fmt: document.getElementById("fmt")
@@ -672,13 +677,13 @@
       return ids.slice(0, count);
     }
 
-    function markerIds(count) {
-      const seed = parseSeed(els.seed.value);
+    function markerIds(count, seedOverride) {
+      const seed = seedOverride !== undefined ? seedOverride : parseSeed(els.seed.value);
       if (seed == null) return { ids: Array.from({ length: count }, (_, i) => i), seed: null };
       return { ids: shuffledIds(count, seed), seed };
     }
 
-    function layout() {
+    function layout(seedOverride) {
       const size = sheetSize();
       const width = size.width;
       const height = size.height;
@@ -723,7 +728,7 @@
         modulePx = Math.max(1, Math.floor(maxSide / modules));
         markerPx = modulePx * modules;
       }
-      const { ids, seed } = markerIds(count);
+      const { ids, seed } = markerIds(count, seedOverride);
       return { count, density, size, width, height, grey, ink, bg, dictName, info, cols, rows, cellW, cellH, originX, originY, bits, modules, modulePx, markerPx, ids, seed };
     }
 
@@ -757,12 +762,14 @@
         `canvas <strong>${opt.width}×${opt.height}</strong> · ${area}<br>` +
         `grid <strong>${opt.cols}×${opt.rows}</strong> · marker ${opt.markerPx}px<br>` +
         idLine;
-      els.download.textContent = fileFmt === "jpg" ? "Download JPG" : "Download PNG";
+      syncDownloadLabel();
+      paintSheet(els.sheet, opt);
+      els.sheet.style.background = opt.bg;
+    }
 
-      const canvas = els.sheet;
+    function paintSheet(canvas, opt) {
       canvas.width = opt.width;
       canvas.height = opt.height;
-      canvas.style.background = opt.bg;
       const ctx = canvas.getContext("2d");
       ctx.fillStyle = opt.bg;
       ctx.fillRect(0, 0, opt.width, opt.height);
@@ -883,42 +890,171 @@
       if (!btn) return;
       fileFmt = btn.dataset.fmt;
       els.fmt.querySelectorAll("button").forEach(b => b.classList.toggle("on", b === btn));
-      els.download.textContent = fileFmt === "jpg" ? "Download JPG" : "Download PNG";
+      syncDownloadLabel();
+    });
+    els.batch.addEventListener("input", syncDownloadLabel);
+    els.batch.addEventListener("change", () => {
+      const n = batchCount();
+      els.batch.value = String(n);
+      syncDownloadLabel();
     });
     els.download.addEventListener("click", () => {
-      try {
-        const opt = layout();
-        const ext = fileFmt === "jpg" ? "jpg" : "png";
-        const seedPart = opt.seed == null ? "" : `_s${opt.seed}`;
-        downloadCanvas(els.sheet, `aruco_${opt.count}_${opt.width}x${opt.height}${seedPart}.${ext}`, ext);
-      } catch (e) {
-        els.err.textContent = e.message;
-      }
+      downloadSheets().catch(e => {
+        els.err.textContent = e.message || "Download failed.";
+        els.download.disabled = false;
+        syncDownloadLabel();
+      });
     });
 
-    function downloadCanvas(canvas, filename, ext) {
-      const mime = ext === "jpg" ? "image/jpeg" : "image/png";
-      const quality = ext === "jpg" ? 0.92 : undefined;
-      if (canvas.toBlob) {
-        canvas.toBlob(blob => {
-          if (!blob) { fallbackDownload(canvas, filename, mime); return; }
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = filename;
-          a.click();
-          setTimeout(() => URL.revokeObjectURL(url), 1000);
-        }, mime, quality);
-        return;
-      }
-      fallbackDownload(canvas, filename, mime);
+    function batchCount() {
+      const n = Math.round(num(els.batch, 1));
+      return Math.max(1, Math.min(30, n));
     }
 
-    function fallbackDownload(canvas, filename, mime) {
+    function syncDownloadLabel() {
+      const n = batchCount();
+      const ext = fileFmt === "jpg" ? "JPG" : "PNG";
+      els.download.textContent = n <= 1 ? `Download ${ext}` : `Download ${n} ${ext}s`;
+    }
+
+    function uniqueSeeds(n, first) {
+      const used = new Set();
+      const seeds = [];
+      if (first != null) {
+        seeds.push(first);
+        used.add(first);
+      }
+      let guard = 0;
+      while (seeds.length < n && guard++ < n * 20) {
+        const s = newSeed();
+        if (used.has(s)) continue;
+        used.add(s);
+        seeds.push(s);
+      }
+      if (seeds.length < n) throw new Error("Could not pick enough unique seeds.");
+      return seeds;
+    }
+
+    function fileBase(opt) {
+      return `aruco_${opt.count}_${opt.width}x${opt.height}`;
+    }
+
+    async function downloadSheets() {
+      els.err.textContent = "";
+      const n = batchCount();
+      const ext = fileFmt === "jpg" ? "jpg" : "png";
+      if (n <= 1) {
+        const opt = layout();
+        const seedPart = opt.seed == null ? "" : `_s${opt.seed}`;
+        downloadBlob(await canvasBlob(els.sheet, ext), `${fileBase(opt)}${seedPart}.${ext}`);
+        return;
+      }
+      layout();
+      const first = parseSeed(els.seed.value);
+      const seeds = uniqueSeeds(n, first);
+      els.download.disabled = true;
+      const files = [];
+      const scratch = document.createElement("canvas");
+      for (let i = 0; i < seeds.length; i++) {
+        els.download.textContent = `Packing ${i + 1} / ${n}…`;
+        await new Promise(r => setTimeout(r, 0));
+        const opt = layout(seeds[i]);
+        paintSheet(scratch, opt);
+        const blob = await canvasBlob(scratch, ext);
+        const data = new Uint8Array(await blob.arrayBuffer());
+        files.push({ name: `${fileBase(opt)}_s${opt.seed}.${ext}`, data });
+      }
+      const zipName = `${fileBase(layout(seeds[0]))}_x${n}.zip`;
+      downloadBlob(zipStore(files), zipName);
+      els.download.disabled = false;
+      syncDownloadLabel();
+    }
+
+    function canvasBlob(canvas, ext) {
+      const mime = ext === "jpg" ? "image/jpeg" : "image/png";
+      const quality = ext === "jpg" ? 0.92 : undefined;
+      return new Promise((resolve, reject) => {
+        if (canvas.toBlob) {
+          canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error("Could not encode image.")), mime, quality);
+          return;
+        }
+        fetch(canvas.toDataURL(mime, quality)).then(r => r.blob()).then(resolve, reject);
+      });
+    }
+
+    function downloadBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = canvas.toDataURL(mime, mime === "image/jpeg" ? 0.92 : undefined);
+      a.href = url;
       a.download = filename;
       a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+    }
+
+    const CRC32_TABLE = (() => {
+      const t = new Uint32Array(256);
+      for (let i = 0; i < 256; i++) {
+        let c = i;
+        for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1;
+        t[i] = c >>> 0;
+      }
+      return t;
+    })();
+
+    function crc32(u8) {
+      let c = ~0;
+      for (let i = 0; i < u8.length; i++) c = CRC32_TABLE[(c ^ u8[i]) & 255] ^ (c >>> 8);
+      return ~c >>> 0;
+    }
+
+    function le16(n) {
+      return new Uint8Array([n & 255, (n >>> 8) & 255]);
+    }
+
+    function le32(n) {
+      return new Uint8Array([n & 255, (n >>> 8) & 255, (n >>> 16) & 255, (n >>> 24) & 255]);
+    }
+
+    function concatBytes(parts) {
+      let len = 0;
+      for (const p of parts) len += p.length;
+      const out = new Uint8Array(len);
+      let o = 0;
+      for (const p of parts) { out.set(p, o); o += p.length; }
+      return out;
+    }
+
+    function zipStore(files) {
+      const enc = new TextEncoder();
+      const locals = [];
+      const centrals = [];
+      let offset = 0;
+      for (const file of files) {
+        const name = enc.encode(file.name);
+        const data = file.data;
+        const crc = crc32(data);
+        const local = concatBytes([
+          le32(0x04034b50), le16(20), le16(0), le16(0),
+          le16(0), le16(0), le32(crc), le32(data.length), le32(data.length),
+          le16(name.length), le16(0), name, data
+        ]);
+        const central = concatBytes([
+          le32(0x02014b50), le16(20), le16(20), le16(0), le16(0),
+          le16(0), le16(0), le32(crc), le32(data.length), le32(data.length),
+          le16(name.length), le16(0), le16(0), le16(0), le16(0),
+          le32(0), le32(offset), name
+        ]);
+        locals.push(local);
+        centrals.push(central);
+        offset += local.length;
+      }
+      const central = concatBytes(centrals);
+      const eocd = concatBytes([
+        le32(0x06054b50), le16(0), le16(0),
+        le16(files.length), le16(files.length),
+        le32(central.length), le32(offset), le16(0)
+      ]);
+      return new Blob([concatBytes([...locals, central, eocd])], { type: "application/zip" });
     }
 
     fillPanelSelect();
