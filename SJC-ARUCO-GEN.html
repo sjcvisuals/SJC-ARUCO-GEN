@@ -144,7 +144,10 @@
       padding: 10px 12px;
       font: 650 13px/1 "Segoe UI", system-ui, sans-serif;
     }
-    .seg button.on { background: var(--accent); color: #161616; border-color: var(--accent); }
+    .seg.tight { grid-template-columns: 1fr 1fr; }
+    .hidden { display: none !important; }
+    .hint { color: var(--muted); font-size: 12px; letter-spacing: 0; text-transform: none; }
+    .filter { padding: 8px 12px; }
     .stats {
       padding: 10px 12px;
       border: 1px solid var(--line);
@@ -223,24 +226,62 @@
     <div class="mark" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
     <div>
       <h1>ARUCOGEN</h1>
-      <p>Choose count, size, and colors. Download a PNG or JPG.</p>
+      <p>Pick a count, a canvas, or an LED wall. Download a PNG or JPG.</p>
     </div>
   </header>
   <div class="app">
     <aside>
       <div class="group">
         <h2>Sheet</h2>
-        <label>Markers
+        <div>
+          <div class="hint" style="margin-bottom:6px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">Markers</div>
+          <div class="seg" id="countMode" role="group" aria-label="Marker count mode">
+            <button type="button" data-count-mode="density" class="on">Per m²</button>
+            <button type="button" data-count-mode="custom">Custom</button>
+          </div>
+        </div>
+        <label id="densityWrap">Per square metre
+          <input id="density" type="number" min="0.1" max="100" step="0.1" value="4">
+        </label>
+        <label id="countWrap" class="hidden">Marker count
           <input id="count" type="number" min="1" max="1000" value="64">
         </label>
-        <div class="row">
-          <label>Width
-            <input id="width" type="number" min="32" value="5632">
+        <div>
+          <div class="hint" style="margin-bottom:6px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">Size</div>
+          <div class="seg" id="sizeMode" role="group" aria-label="Size mode">
+            <button type="button" data-size-mode="resolution">Resolution</button>
+            <button type="button" data-size-mode="led" class="on">LED wall</button>
+          </div>
+        </div>
+        <div id="resWrap" class="hidden">
+          <div class="row">
+            <label>Width
+              <input id="width" type="number" min="32" value="3840">
+            </label>
+            <span class="times">×</span>
+            <label>Height
+              <input id="height" type="number" min="32" value="2160">
+            </label>
+          </div>
+          <label>Pixel pitch (mm)
+            <input id="pitch" type="number" min="0" step="0.01" placeholder="Needed for per m²">
           </label>
-          <span class="times">×</span>
-          <label>Height
-            <input id="height" type="number" min="32" value="1408">
+        </div>
+        <div id="ledWrap">
+          <label>Panel
+            <input id="panelFilter" class="filter" type="search" placeholder="Filter panels">
+            <select id="panel"></select>
           </label>
+          <div class="row">
+            <label>Cabinets across
+              <input id="ledCols" type="number" min="1" max="200" value="8">
+            </label>
+            <span class="times">×</span>
+            <label>Cabinets high
+              <input id="ledRows" type="number" min="1" max="200" value="4">
+            </label>
+          </div>
+          <div class="hint">Absen, Aluvision, Gloshine, ROE, Unilumin, plus generic pitches.</div>
         </div>
         <label>Dictionary
           <select id="dict">
@@ -283,13 +324,14 @@
     </aside>
     <main>
       <div class="stage">
-        <div class="caption"><span>Preview</span><span id="captionSize">5632 × 1408</span></div>
+        <div class="caption"><span>Preview</span><span id="captionSize">3840 × 2160</span></div>
         <div class="frame"><i></i>
-          <canvas id="sheet" width="5632" height="1408"></canvas>
+          <canvas id="sheet" width="3840" height="2160"></canvas>
         </div>
       </div>
     </main>
   </div>
+  <script src="panels.js"></script>
   <script>
     const DICT_INFO = {
       "4x4": { bits: 4, nbytes: 2 },
@@ -304,8 +346,20 @@
 
     const els = {
       count: document.getElementById("count"),
+      density: document.getElementById("density"),
+      densityWrap: document.getElementById("densityWrap"),
+      countWrap: document.getElementById("countWrap"),
+      countMode: document.getElementById("countMode"),
+      sizeMode: document.getElementById("sizeMode"),
+      resWrap: document.getElementById("resWrap"),
+      ledWrap: document.getElementById("ledWrap"),
       width: document.getElementById("width"),
       height: document.getElementById("height"),
+      pitch: document.getElementById("pitch"),
+      panel: document.getElementById("panel"),
+      panelFilter: document.getElementById("panelFilter"),
+      ledCols: document.getElementById("ledCols"),
+      ledRows: document.getElementById("ledRows"),
       dict: document.getElementById("dict"),
       bg: document.getElementById("bg"),
       bgHex: document.getElementById("bgHex"),
@@ -321,6 +375,73 @@
       fmt: document.getElementById("fmt")
     };
     let fileFmt = "png";
+    let countMode = "density";
+    let sizeMode = "led";
+
+    function fillPanelSelect() {
+      const panels = window.LED_PANELS || [];
+      const byMan = new Map();
+      for (const p of panels) {
+        if (!byMan.has(p.manufacturer)) byMan.set(p.manufacturer, []);
+        byMan.get(p.manufacturer).push(p);
+      }
+      els.panel.innerHTML = "";
+      for (const [man, list] of byMan) {
+        const group = document.createElement("optgroup");
+        group.label = man;
+        for (const p of list) {
+          const opt = document.createElement("option");
+          opt.value = p.id;
+          opt.textContent = p.label.replace(`${man} — `, "");
+          group.appendChild(opt);
+        }
+        els.panel.appendChild(group);
+      }
+      const preferred = panels.find(p => p.id === "generic-p26-500x500") || panels[0];
+      if (preferred) els.panel.value = preferred.id;
+    }
+
+    function currentPanel() {
+      const panels = window.LED_PANELS || [];
+      return panels.find(p => p.id === els.panel.value);
+    }
+
+    function syncModes() {
+      els.densityWrap.classList.toggle("hidden", countMode !== "density");
+      els.countWrap.classList.toggle("hidden", countMode !== "custom");
+      els.ledWrap.classList.toggle("hidden", sizeMode !== "led");
+      els.resWrap.classList.toggle("hidden", sizeMode !== "resolution");
+    }
+
+    function sheetSize() {
+      if (sizeMode === "led") {
+        const p = currentPanel();
+        if (!p) throw new Error("Pick an LED panel.");
+        const ledCols = Math.round(num(els.ledCols, 0));
+        const ledRows = Math.round(num(els.ledRows, 0));
+        if (ledCols < 1 || ledRows < 1) throw new Error("Need at least 1 cabinet across and high.");
+        return {
+          width: p.pixelsX * ledCols,
+          height: p.pixelsY * ledRows,
+          widthM: (p.widthMm * ledCols) / 1000,
+          heightM: (p.heightMm * ledRows) / 1000,
+          panel: p,
+          ledCols,
+          ledRows
+        };
+      }
+      const width = Math.round(num(els.width, 0));
+      const height = Math.round(num(els.height, 0));
+      const pitch = num(els.pitch, 0);
+      const hasPitch = pitch > 0;
+      return {
+        width,
+        height,
+        widthM: hasPitch ? width * pitch / 1000 : null,
+        heightM: hasPitch ? height * pitch / 1000 : null,
+        pitch: hasPitch ? pitch : null
+      };
+    }
 
     function num(el, fallback) {
       const n = Number(el.value);
@@ -371,16 +492,32 @@
     }
 
     function layout() {
-      const count = Math.round(num(els.count, 0));
-      const width = Math.round(num(els.width, 0));
-      const height = Math.round(num(els.height, 0));
+      const size = sheetSize();
+      const width = size.width;
+      const height = size.height;
+      let count;
+      let density = null;
+      if (countMode === "density") {
+        density = num(els.density, 4);
+        if (!(density > 0)) throw new Error("Markers per m² must be greater than 0.");
+        if (size.widthM == null || size.heightM == null) {
+          throw new Error("Per m² needs an LED wall, or a pixel pitch with the resolution.");
+        }
+        count = Math.max(1, Math.round(density * size.widthM * size.heightM));
+      } else {
+        count = Math.round(num(els.count, 0));
+      }
       const grey = Math.round(num(els.grey, 128));
       const bg = parseHex(els.bgHex.value || els.bg.value);
       const dictName = els.dict.value;
       const info = DICT_INFO[dictName];
-      if (!(count >= 1 && count <= 1000)) throw new Error("Use 1–1000 markers.");
+      if (!(count >= 1 && count <= 1000)) {
+        throw new Error(count > 1000
+          ? "That wall wants more than 1000 markers. Lower the density or use a custom count."
+          : "Need at least 1 marker.");
+      }
       if (!(width >= 32 && height >= 32)) throw new Error("Canvas should be at least 32×32.");
-      if (width * height > 40_000_000) throw new Error("Canvas is too large for the browser. Try a smaller size.");
+      if (width * height > 40_000_000) throw new Error("Canvas is too large for the browser. Try fewer cabinets.");
       const { cols, rows } = bestGrid(count, width, height);
       const cellW = Math.floor(width / cols);
       const cellH = Math.floor(height / rows);
@@ -396,7 +533,7 @@
         modulePx = Math.max(1, Math.floor(maxSide / modules));
         markerPx = modulePx * modules;
       }
-      return { count, width, height, grey, bg, dictName, info, cols, rows, cellW, cellH, originX, originY, bits, modules, modulePx, markerPx };
+      return { count, density, size, width, height, grey, bg, dictName, info, cols, rows, cellW, cellH, originX, originY, bits, modules, modulePx, markerPx };
     }
 
     function draw() {
@@ -411,10 +548,20 @@
       els.download.disabled = false;
       els.swatch.style.background = `rgb(${opt.grey}, ${opt.grey}, ${opt.grey})`;
       els.captionSize.textContent = `${opt.width} × ${opt.height}`;
+      const area = opt.size.widthM != null
+        ? `${opt.size.widthM.toFixed(2)}×${opt.size.heightM.toFixed(2)} m`
+        : "size in px";
+      const countLine = opt.density != null
+        ? `<strong>${opt.count}</strong> markers · ${opt.density} / m²`
+        : `<strong>${opt.count}</strong> ${opt.dictName} markers`;
+      const wallLine = opt.size.panel
+        ? `${opt.size.panel.model} · ${opt.size.ledCols}×${opt.size.ledRows} cabinets<br>`
+        : "";
       els.stats.innerHTML =
-        `<strong>${opt.count}</strong> ${opt.dictName} markers<br>` +
-        `canvas <strong>${opt.width}×${opt.height}</strong> · bg ${opt.bg}<br>` +
-        `grid <strong>${opt.cols}×${opt.rows}</strong> · cell ${opt.cellW}×${opt.cellH} · marker ${opt.markerPx}px`;
+        `${countLine}<br>` +
+        wallLine +
+        `canvas <strong>${opt.width}×${opt.height}</strong> · ${area}<br>` +
+        `grid <strong>${opt.cols}×${opt.rows}</strong> · marker ${opt.markerPx}px`;
       els.download.textContent = fileFmt === "jpg" ? "Download JPG" : "Download PNG";
 
       const canvas = els.sheet;
@@ -461,9 +608,32 @@
       draw();
     }
 
-    ["count", "width", "height", "dict"].forEach(id => {
+    ["count", "density", "width", "height", "pitch", "panel", "ledCols", "ledRows", "dict"].forEach(id => {
+      if (!els[id]) return;
       els[id].addEventListener("input", draw);
       els[id].addEventListener("change", draw);
+    });
+    els.countMode.addEventListener("click", e => {
+      const btn = e.target.closest("button[data-count-mode]");
+      if (!btn) return;
+      countMode = btn.dataset.countMode;
+      els.countMode.querySelectorAll("button").forEach(b => b.classList.toggle("on", b === btn));
+      syncModes();
+      draw();
+    });
+    els.sizeMode.addEventListener("click", e => {
+      const btn = e.target.closest("button[data-size-mode]");
+      if (!btn) return;
+      sizeMode = btn.dataset.sizeMode;
+      els.sizeMode.querySelectorAll("button").forEach(b => b.classList.toggle("on", b === btn));
+      syncModes();
+      draw();
+    });
+    els.panelFilter.addEventListener("input", () => {
+      const q = els.panelFilter.value.trim().toLowerCase();
+      for (const opt of els.panel.querySelectorAll("option")) {
+        opt.hidden = q.length > 0 && !opt.textContent.toLowerCase().includes(q);
+      }
     });
     els.grey.addEventListener("input", () => syncGrey(els.grey));
     els.greyNum.addEventListener("input", () => syncGrey(els.greyNum));
@@ -515,6 +685,8 @@
       a.click();
     }
 
+    fillPanelSelect();
+    syncModes();
     draw();
   </script>
 </body>

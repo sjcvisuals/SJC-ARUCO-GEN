@@ -2,3 +2,4 @@ bin/
 obj/
 *.user
 *.png
+_cabinets_src/
