@@ -3,16 +3,17 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SJC ARUCO GEN</title>
+  <title>ARUCOGEN</title>
   <style>
     :root {
-      --bg: #101114;
-      --panel: #1a1c21;
-      --line: #2c2f38;
-      --text: #ecece8;
-      --muted: #8d9099;
-      --accent: #d4d0c8;
-      --field: #121318;
+      --bg: #0b0c0e;
+      --panel: #14161a;
+      --line: #2a2e36;
+      --text: #f2efe8;
+      --muted: #9a9ea8;
+      --accent: #e8e2d2;
+      --field: #0c0d10;
+      --mark: #7d818a;
     }
     * { box-sizing: border-box; }
     html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--text); }
@@ -21,42 +22,69 @@
       display: grid;
       grid-template-rows: auto 1fr;
       min-height: 100vh;
+      background:
+        linear-gradient(180deg, #12141a 0%, var(--bg) 28%),
+        repeating-conic-gradient(#14161a 0% 25%, #0b0c0e 0% 50%) 0 0 / 28px 28px;
     }
     header {
-      padding: 20px 28px 12px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 24px;
       border-bottom: 1px solid var(--line);
+      background: rgba(11, 12, 14, 0.92);
+      backdrop-filter: blur(8px);
     }
+    .mark {
+      width: 28px; height: 28px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3px;
+      flex: none;
+    }
+    .mark i { background: var(--accent); display: block; }
+    .mark i:nth-child(2), .mark i:nth-child(3) { background: #3a3d46; }
     header h1 {
       margin: 0;
-      font-size: 18px;
-      font-weight: 650;
-      letter-spacing: 0.08em;
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
     }
-    header p {
-      margin: 6px 0 0;
-      color: var(--muted);
-      font-size: 13px;
-    }
+    header p { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
     .app {
       display: grid;
-      grid-template-columns: 320px 1fr;
+      grid-template-columns: 340px 1fr;
       min-height: 0;
     }
     aside {
-      padding: 20px 24px 28px;
+      padding: 18px 20px 22px;
       border-right: 1px solid var(--line);
       background: var(--panel);
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 16px;
+    }
+    .group {
+      display: grid;
+      gap: 10px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--line);
+    }
+    .group:last-of-type { border-bottom: 0; padding-bottom: 0; }
+    .group h2 {
+      margin: 0;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      color: var(--mark);
     }
     label {
       display: flex;
       flex-direction: column;
       gap: 6px;
-      font-size: 12px;
+      font-size: 11px;
       color: var(--muted);
-      letter-spacing: 0.04em;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
     }
     input, select {
@@ -69,68 +97,120 @@
       color-scheme: dark;
     }
     input:focus, select:focus {
-      outline: 2px solid #5a5d68;
+      outline: 2px solid #5c616c;
       outline-offset: 1px;
     }
-    input[type="range"] {
-      accent-color: #b9b6ae;
-      padding: 10px 0;
+    input[type="range"] { accent-color: var(--accent); padding: 10px 0; }
+    input[type="color"] {
+      padding: 4px;
+      height: 42px;
+      width: 56px;
+      cursor: pointer;
     }
     .row { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: end; }
     .times { color: var(--muted); padding-bottom: 10px; }
-    .grey-row { display: grid; grid-template-columns: 1fr 64px; gap: 8px; align-items: center; }
+    .color-row, .grey-row { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; }
+    .grey-row { grid-template-columns: 1fr 72px; }
+    .hex { font-family: ui-monospace, Consolas, monospace; letter-spacing: 0.04em; }
+    .linkish {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 10px;
+      font: 650 11px/1 "Segoe UI", system-ui, sans-serif;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+    .linkish:hover { color: var(--text); border-color: #4a4f5a; }
     .swatch {
-      height: 40px;
+      height: 42px;
       border-radius: 8px;
       border: 1px solid var(--line);
       background: #808080;
     }
+    .seg {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    .seg button {
+      margin: 0;
+      background: var(--field);
+      color: var(--muted);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font: 650 13px/1 "Segoe UI", system-ui, sans-serif;
+    }
+    .seg button.on { background: var(--accent); color: #161616; border-color: var(--accent); }
     .stats {
-      margin-top: 4px;
-      padding: 12px;
-      border: 1px dashed var(--line);
+      padding: 10px 12px;
+      border: 1px solid var(--line);
       border-radius: 8px;
       color: var(--muted);
-      font-size: 13px;
-      text-transform: none;
-      letter-spacing: 0;
-      line-height: 1.6;
+      font-size: 12px;
+      line-height: 1.55;
+      background: var(--field);
     }
     .stats strong { color: var(--text); font-weight: 600; }
-    button {
+    .go {
       margin-top: auto;
       background: var(--accent);
       color: #161616;
       border: 0;
       border-radius: 10px;
-      padding: 12px 16px;
-      font: 650 14px/1 "Segoe UI", system-ui, sans-serif;
+      padding: 13px 16px;
+      font: 700 14px/1 "Segoe UI", system-ui, sans-serif;
       cursor: pointer;
     }
-    button:hover { filter: brightness(1.06); }
-    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .go:hover { filter: brightness(1.06); }
+    .go:disabled { opacity: 0.5; cursor: not-allowed; }
     .err { color: #e58b8b; font-size: 13px; min-height: 1.2em; }
     main {
       min-width: 0;
-      padding: 24px;
+      padding: 28px;
       display: grid;
       place-items: start center;
-      background:
-        radial-gradient(circle at 50% 0%, #22242c 0%, var(--bg) 55%);
     }
-    .stage {
-      width: min(100%, 1100px);
-      display: grid;
-      gap: 10px;
+    .stage { width: min(100%, 1120px); }
+    .frame {
+      position: relative;
+      padding: 18px;
     }
-    .stage span { color: var(--muted); font-size: 12px; }
+    .frame > i {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+    .frame::before, .frame::after,
+    .frame i::before, .frame i::after {
+      content: "";
+      position: absolute;
+      width: 14px; height: 14px;
+      border: 2px solid #6a6e78;
+    }
+    .frame::before { top: 0; left: 0; border-right: 0; border-bottom: 0; }
+    .frame::after { top: 0; right: 0; border-left: 0; border-bottom: 0; }
+    .frame i::before { bottom: 0; left: 0; border-right: 0; border-top: 0; }
+    .frame i::after { bottom: 0; right: 0; border-left: 0; border-top: 0; }
+    .caption {
+      display: flex;
+      justify-content: space-between;
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      padding: 0 18px;
+    }
     canvas {
       width: 100%;
       height: auto;
       background: #000;
-      border: 1px solid var(--line);
-      border-radius: 10px;
       image-rendering: pixelated;
+      display: block;
     }
     @media (max-width: 820px) {
       .app { grid-template-columns: 1fr; }
@@ -140,45 +220,73 @@
 </head>
 <body>
   <header>
-    <h1>SJC ARUCO GEN</h1>
-    <p>Open this file in a browser. Choose how many markers and the canvas size, then download a PNG. Nothing to install.</p>
+    <div class="mark" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+    <div>
+      <h1>ARUCOGEN</h1>
+      <p>Choose count, size, and colors. Download a PNG or JPG.</p>
+    </div>
   </header>
   <div class="app">
     <aside>
-      <label>Markers
-        <input id="count" type="number" min="1" max="1000" value="64">
-      </label>
-      <div class="row">
-        <label>Width
-          <input id="width" type="number" min="32" value="5632">
+      <div class="group">
+        <h2>Sheet</h2>
+        <label>Markers
+          <input id="count" type="number" min="1" max="1000" value="64">
         </label>
-        <span class="times">×</span>
-        <label>Height
-          <input id="height" type="number" min="32" value="1408">
+        <div class="row">
+          <label>Width
+            <input id="width" type="number" min="32" value="5632">
+          </label>
+          <span class="times">×</span>
+          <label>Height
+            <input id="height" type="number" min="32" value="1408">
+          </label>
+        </div>
+        <label>Dictionary
+          <select id="dict">
+            <option value="4x4" selected>4×4 (OpenCV DICT_4X4_1000)</option>
+            <option value="5x5">5×5 (OpenCV DICT_5X5_1000)</option>
+            <option value="6x6">6×6 (OpenCV DICT_6X6_1000)</option>
+          </select>
         </label>
       </div>
-      <label>Dictionary
-        <select id="dict">
-          <option value="4x4" selected>4×4 (OpenCV DICT_4X4_1000)</option>
-          <option value="5x5">5×5 (OpenCV DICT_5X5_1000)</option>
-          <option value="6x6">6×6 (OpenCV DICT_6X6_1000)</option>
-        </select>
-      </label>
-      <label>Grey (0–255)
-        <div class="grey-row">
-          <input id="grey" type="range" min="0" max="255" value="128">
-          <input id="greyNum" type="number" min="0" max="255" value="128">
+      <div class="group">
+        <h2>Ink</h2>
+        <label>Background
+          <div class="color-row">
+            <input id="bg" type="color" value="#000000" title="Background color">
+            <input id="bgHex" class="hex" type="text" value="#000000" maxlength="7" spellcheck="false">
+            <button class="linkish" id="bgReset" type="button">Black</button>
+          </div>
+        </label>
+        <label>Marker grey
+          <div class="grey-row">
+            <input id="grey" type="range" min="0" max="255" value="128">
+            <input id="greyNum" type="number" min="0" max="255" value="128">
+          </div>
+          <div class="swatch" id="swatch"></div>
+        </label>
+      </div>
+      <div class="group">
+        <h2>Export</h2>
+        <div>
+          <div style="font-size:11px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px">File type</div>
+          <div class="seg" id="fmt" role="group" aria-label="File type">
+            <button type="button" data-fmt="png" class="on">PNG</button>
+            <button type="button" data-fmt="jpg">JPG</button>
+          </div>
         </div>
-        <div class="swatch" id="swatch"></div>
-      </label>
+      </div>
       <div class="stats" id="stats">Set a count and canvas size.</div>
       <div class="err" id="err"></div>
-      <button id="download" type="button">Download PNG</button>
+      <button class="go" id="download" type="button">Download PNG</button>
     </aside>
     <main>
       <div class="stage">
-        <span>Preview</span>
-        <canvas id="sheet" width="5632" height="1408"></canvas>
+        <div class="caption"><span>Preview</span><span id="captionSize">5632 × 1408</span></div>
+        <div class="frame"><i></i>
+          <canvas id="sheet" width="5632" height="1408"></canvas>
+        </div>
       </div>
     </main>
   </div>
@@ -199,14 +307,20 @@
       width: document.getElementById("width"),
       height: document.getElementById("height"),
       dict: document.getElementById("dict"),
+      bg: document.getElementById("bg"),
+      bgHex: document.getElementById("bgHex"),
+      bgReset: document.getElementById("bgReset"),
       grey: document.getElementById("grey"),
       greyNum: document.getElementById("greyNum"),
       swatch: document.getElementById("swatch"),
       stats: document.getElementById("stats"),
       err: document.getElementById("err"),
       download: document.getElementById("download"),
-      sheet: document.getElementById("sheet")
+      sheet: document.getElementById("sheet"),
+      captionSize: document.getElementById("captionSize"),
+      fmt: document.getElementById("fmt")
     };
+    let fileFmt = "png";
 
     function num(el, fallback) {
       const n = Number(el.value);
@@ -246,11 +360,22 @@
       return bits;
     }
 
+    function parseHex(raw) {
+      let s = String(raw || "").trim();
+      if (!s.startsWith("#")) s = "#" + s;
+      if (/^#[0-9a-f]{3}$/i.test(s)) {
+        s = "#" + [...s.slice(1)].map(c => c + c).join("");
+      }
+      if (!/^#[0-9a-f]{6}$/i.test(s)) throw new Error("Background color should look like #000000.");
+      return s.toLowerCase();
+    }
+
     function layout() {
       const count = Math.round(num(els.count, 0));
       const width = Math.round(num(els.width, 0));
       const height = Math.round(num(els.height, 0));
       const grey = Math.round(num(els.grey, 128));
+      const bg = parseHex(els.bgHex.value || els.bg.value);
       const dictName = els.dict.value;
       const info = DICT_INFO[dictName];
       if (!(count >= 1 && count <= 1000)) throw new Error("Use 1–1000 markers.");
@@ -271,7 +396,7 @@
         modulePx = Math.max(1, Math.floor(maxSide / modules));
         markerPx = modulePx * modules;
       }
-      return { count, width, height, grey, dictName, info, cols, rows, cellW, cellH, originX, originY, bits, modules, modulePx, markerPx };
+      return { count, width, height, grey, bg, dictName, info, cols, rows, cellW, cellH, originX, originY, bits, modules, modulePx, markerPx };
     }
 
     function draw() {
@@ -285,16 +410,19 @@
       }
       els.download.disabled = false;
       els.swatch.style.background = `rgb(${opt.grey}, ${opt.grey}, ${opt.grey})`;
+      els.captionSize.textContent = `${opt.width} × ${opt.height}`;
       els.stats.innerHTML =
         `<strong>${opt.count}</strong> ${opt.dictName} markers<br>` +
-        `canvas <strong>${opt.width}×${opt.height}</strong><br>` +
+        `canvas <strong>${opt.width}×${opt.height}</strong> · bg ${opt.bg}<br>` +
         `grid <strong>${opt.cols}×${opt.rows}</strong> · cell ${opt.cellW}×${opt.cellH} · marker ${opt.markerPx}px`;
+      els.download.textContent = fileFmt === "jpg" ? "Download JPG" : "Download PNG";
 
       const canvas = els.sheet;
       canvas.width = opt.width;
       canvas.height = opt.height;
+      canvas.style.background = opt.bg;
       const ctx = canvas.getContext("2d");
-      ctx.fillStyle = "#000";
+      ctx.fillStyle = opt.bg;
       ctx.fillRect(0, 0, opt.width, opt.height);
       ctx.fillStyle = `rgb(${opt.grey},${opt.grey},${opt.grey})`;
 
@@ -319,6 +447,13 @@
       }
     }
 
+    function setBg(hex) {
+      const v = parseHex(hex);
+      els.bg.value = v;
+      els.bgHex.value = v;
+      draw();
+    }
+
     function syncGrey(from) {
       const v = Math.max(0, Math.min(255, Math.round(num(from, 128))));
       els.grey.value = v;
@@ -332,34 +467,50 @@
     });
     els.grey.addEventListener("input", () => syncGrey(els.grey));
     els.greyNum.addEventListener("input", () => syncGrey(els.greyNum));
+    els.bg.addEventListener("input", () => setBg(els.bg.value));
+    els.bgHex.addEventListener("change", () => {
+      try { setBg(els.bgHex.value); }
+      catch (e) { els.err.textContent = e.message; }
+    });
+    els.bgReset.addEventListener("click", () => setBg("#000000"));
+    els.fmt.addEventListener("click", e => {
+      const btn = e.target.closest("button[data-fmt]");
+      if (!btn) return;
+      fileFmt = btn.dataset.fmt;
+      els.fmt.querySelectorAll("button").forEach(b => b.classList.toggle("on", b === btn));
+      els.download.textContent = fileFmt === "jpg" ? "Download JPG" : "Download PNG";
+    });
     els.download.addEventListener("click", () => {
       try {
         const opt = layout();
-        canvasToPng(els.sheet, `aruco_${opt.count}_${opt.width}x${opt.height}.png`);
+        const ext = fileFmt === "jpg" ? "jpg" : "png";
+        downloadCanvas(els.sheet, `aruco_${opt.count}_${opt.width}x${opt.height}.${ext}`, ext);
       } catch (e) {
         els.err.textContent = e.message;
       }
     });
 
-    function canvasToPng(canvas, filename) {
+    function downloadCanvas(canvas, filename, ext) {
+      const mime = ext === "jpg" ? "image/jpeg" : "image/png";
+      const quality = ext === "jpg" ? 0.92 : undefined;
       if (canvas.toBlob) {
         canvas.toBlob(blob => {
-          if (!blob) { fallbackDownload(canvas, filename); return; }
+          if (!blob) { fallbackDownload(canvas, filename, mime); return; }
           const url = URL.createObjectURL(blob);
           const a = document.createElement("a");
           a.href = url;
           a.download = filename;
           a.click();
           setTimeout(() => URL.revokeObjectURL(url), 1000);
-        }, "image/png");
+        }, mime, quality);
         return;
       }
-      fallbackDownload(canvas, filename);
+      fallbackDownload(canvas, filename, mime);
     }
 
-    function fallbackDownload(canvas, filename) {
+    function fallbackDownload(canvas, filename, mime) {
       const a = document.createElement("a");
-      a.href = canvas.toDataURL("image/png");
+      a.href = canvas.toDataURL(mime, mime === "image/jpeg" ? 0.92 : undefined);
       a.download = filename;
       a.click();
     }
