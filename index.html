@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SJC ARUCO GEN</title>
+  <style>
+    :root {
+      --bg: #101114;
+      --panel: #1a1c21;
+      --line: #2c2f38;
+      --text: #ecece8;
+      --muted: #8d9099;
+      --accent: #d4d0c8;
+      --field: #121318;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--text); }
+    body {
+      font: 15px/1.45 "Segoe UI", system-ui, sans-serif;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      min-height: 100vh;
+    }
+    header {
+      padding: 20px 28px 12px;
+      border-bottom: 1px solid var(--line);
+    }
+    header h1 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 650;
+      letter-spacing: 0.08em;
+    }
+    header p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .app {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      min-height: 0;
+    }
+    aside {
+      padding: 20px 24px 28px;
+      border-right: 1px solid var(--line);
+      background: var(--panel);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    label {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    input, select {
+      background: var(--field);
+      color: var(--text);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font: inherit;
+      color-scheme: dark;
+    }
+    input:focus, select:focus {
+      outline: 2px solid #5a5d68;
+      outline-offset: 1px;
+    }
+    input[type="range"] {
+      accent-color: #b9b6ae;
+      padding: 10px 0;
+    }
+    .row { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: end; }
+    .times { color: var(--muted); padding-bottom: 10px; }
+    .grey-row { display: grid; grid-template-columns: 1fr 64px; gap: 8px; align-items: center; }
+    .swatch {
+      height: 40px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: #808080;
+    }
+    .stats {
+      margin-top: 4px;
+      padding: 12px;
+      border: 1px dashed var(--line);
+      border-radius: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      text-transform: none;
+      letter-spacing: 0;
+      line-height: 1.6;
+    }
+    .stats strong { color: var(--text); font-weight: 600; }
+    button {
+      margin-top: auto;
+      background: var(--accent);
+      color: #161616;
+      border: 0;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font: 650 14px/1 "Segoe UI", system-ui, sans-serif;
+      cursor: pointer;
+    }
+    button:hover { filter: brightness(1.06); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .err { color: #e58b8b; font-size: 13px; min-height: 1.2em; }
+    main {
+      min-width: 0;
+      padding: 24px;
+      display: grid;
+      place-items: start center;
+      background:
+        radial-gradient(circle at 50% 0%, #22242c 0%, var(--bg) 55%);
+    }
+    .stage {
+      width: min(100%, 1100px);
+      display: grid;
+      gap: 10px;
+    }
+    .stage span { color: var(--muted); font-size: 12px; }
+    canvas {
+      width: 100%;
+      height: auto;
+      background: #000;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      image-rendering: pixelated;
+    }
+    @media (max-width: 820px) {
+      .app { grid-template-columns: 1fr; }
+      aside { border-right: 0; border-bottom: 1px solid var(--line); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>SJC ARUCO GEN</h1>
+    <p>Open this file in a browser. Choose how many markers and the canvas size, then download a PNG. Nothing to install.</p>
+  </header>
+  <div class="app">
+    <aside>
+      <label>Markers
+        <input id="count" type="number" min="1" max="1000" value="64">
+      </label>
+      <div class="row">
+        <label>Width
+          <input id="width" type="number" min="32" value="5632">
+        </label>
+        <span class="times">×</span>
+        <label>Height
+          <input id="height" type="number" min="32" value="1408">
+        </label>
+      </div>
+      <label>Dictionary
+        <select id="dict">
+          <option value="4x4" selected>4×4 (OpenCV DICT_4X4_1000)</option>
+          <option value="5x5">5×5 (OpenCV DICT_5X5_1000)</option>
+          <option value="6x6">6×6 (OpenCV DICT_6X6_1000)</option>
+        </select>
+      </label>
+      <label>Grey (0–255)
+        <div class="grey-row">
+          <input id="grey" type="range" min="0" max="255" value="128">
+          <input id="greyNum" type="number" min="0" max="255" value="128">
+        </div>
+        <div class="swatch" id="swatch"></div>
+      </label>
+      <div class="stats" id="stats">Set a count and canvas size.</div>
+      <div class="err" id="err"></div>
+      <button id="download" type="button">Download PNG</button>
+    </aside>
+    <main>
+      <div class="stage">
+        <span>Preview</span>
+        <canvas id="sheet" width="5632" height="1408"></canvas>
+      </div>
+    </main>
+  </div>
+  <script>
+    const DICT_INFO = {
+      "4x4": { bits: 4, nbytes: 2 },
+      "5x5": { bits: 5, nbytes: 4 },
+      "6x6": { bits: 6, nbytes: 5 }
+    };
+    const DICTS = {
+      "4x4": Uint8Array.from(atob("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"), c => c.charCodeAt(0)),
+      "5x5": Uint8Array.from(atob("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"), c => c.charCodeAt(0)),
+      "6x6": Uint8Array.from(atob("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"), c => c.charCodeAt(0))
+    };
+
+    const els = {
+      count: document.getElementById("count"),
+      width: document.getElementById("width"),
+      height: document.getElementById("height"),
+      dict: document.getElementById("dict"),
+      grey: document.getElementById("grey"),
+      greyNum: document.getElementById("greyNum"),
+      swatch: document.getElementById("swatch"),
+      stats: document.getElementById("stats"),
+      err: document.getElementById("err"),
+      download: document.getElementById("download"),
+      sheet: document.getElementById("sheet")
+    };
+
+    function num(el, fallback) {
+      const n = Number(el.value);
+      return Number.isFinite(n) ? n : fallback;
+    }
+
+    function bestGrid(n, width, height) {
+      let best = Infinity, bestCols = n, bestRows = 1;
+      for (let rows = 1; rows <= n; rows++) {
+        const cols = Math.ceil(n / rows);
+        const cellW = width / cols, cellH = height / rows;
+        if (cellW < 8 || cellH < 8) continue;
+        const squareness = Math.max(cellW, cellH) / Math.min(cellW, cellH);
+        const unused = cols * rows - n;
+        const score = squareness + unused * 0.05;
+        if (score < best) {
+          best = score;
+          bestCols = cols;
+          bestRows = rows;
+        }
+      }
+      return { cols: bestCols, rows: bestRows };
+    }
+
+    function unpackBits(dict, id, markerSize, nbytes) {
+      const bits = [];
+      const offset = id * nbytes;
+      let i = 0;
+      for (let row = 0; row < markerSize; row++) {
+        bits[row] = [];
+        for (let col = 0; col < markerSize; col++) {
+          const b = dict[offset + (i >> 3)];
+          bits[row][col] = (b & (1 << (7 - (i & 7)))) !== 0;
+          i++;
+        }
+      }
+      return bits;
+    }
+
+    function layout() {
+      const count = Math.round(num(els.count, 0));
+      const width = Math.round(num(els.width, 0));
+      const height = Math.round(num(els.height, 0));
+      const grey = Math.round(num(els.grey, 128));
+      const dictName = els.dict.value;
+      const info = DICT_INFO[dictName];
+      if (!(count >= 1 && count <= 1000)) throw new Error("Use 1–1000 markers.");
+      if (!(width >= 32 && height >= 32)) throw new Error("Canvas should be at least 32×32.");
+      if (width * height > 40_000_000) throw new Error("Canvas is too large for the browser. Try a smaller size.");
+      const { cols, rows } = bestGrid(count, width, height);
+      const cellW = Math.floor(width / cols);
+      const cellH = Math.floor(height / rows);
+      const originX = Math.floor((width - cellW * cols) / 2);
+      const originY = Math.floor((height - cellH * rows) / 2);
+      const bits = info.bits;
+      const modules = bits + 2;
+      const maxSide = Math.min(cellW, cellH);
+      const gap = Math.max(4, Math.floor(maxSide / 16));
+      let modulePx = Math.max(1, Math.floor((maxSide - 2 * gap) / modules));
+      let markerPx = modulePx * modules;
+      if (markerPx > maxSide) {
+        modulePx = Math.max(1, Math.floor(maxSide / modules));
+        markerPx = modulePx * modules;
+      }
+      return { count, width, height, grey, dictName, info, cols, rows, cellW, cellH, originX, originY, bits, modules, modulePx, markerPx };
+    }
+
+    function draw() {
+      els.err.textContent = "";
+      let opt;
+      try { opt = layout(); }
+      catch (e) {
+        els.err.textContent = e.message;
+        els.download.disabled = true;
+        return;
+      }
+      els.download.disabled = false;
+      els.swatch.style.background = `rgb(${opt.grey}, ${opt.grey}, ${opt.grey})`;
+      els.stats.innerHTML =
+        `<strong>${opt.count}</strong> ${opt.dictName} markers<br>` +
+        `canvas <strong>${opt.width}×${opt.height}</strong><br>` +
+        `grid <strong>${opt.cols}×${opt.rows}</strong> · cell ${opt.cellW}×${opt.cellH} · marker ${opt.markerPx}px`;
+
+      const canvas = els.sheet;
+      canvas.width = opt.width;
+      canvas.height = opt.height;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#000";
+      ctx.fillRect(0, 0, opt.width, opt.height);
+      ctx.fillStyle = `rgb(${opt.grey},${opt.grey},${opt.grey})`;
+
+      const dict = DICTS[opt.dictName];
+      const lastRowCount = opt.count - (opt.rows - 1) * opt.cols;
+      for (let id = 0; id < opt.count; id++) {
+        const row = Math.floor(id / opt.cols);
+        const col = id % opt.cols;
+        const rowCount = row === opt.rows - 1 ? lastRowCount : opt.cols;
+        const rowPadX = Math.floor((opt.cols - rowCount) * opt.cellW / 2);
+        const x0 = opt.originX + rowPadX + col * opt.cellW + Math.floor((opt.cellW - opt.markerPx) / 2);
+        const y0 = opt.originY + row * opt.cellH + Math.floor((opt.cellH - opt.markerPx) / 2);
+        const inner = unpackBits(dict, id, opt.bits, opt.info.nbytes);
+        for (let my = 0; my < opt.modules; my++) {
+          for (let mx = 0; mx < opt.modules; mx++) {
+            const iy = my - 1, ix = mx - 1;
+            const on = iy >= 0 && iy < opt.bits && ix >= 0 && ix < opt.bits && inner[iy][ix];
+            if (!on) continue;
+            ctx.fillRect(x0 + mx * opt.modulePx, y0 + my * opt.modulePx, opt.modulePx, opt.modulePx);
+          }
+        }
+      }
+    }
+
+    function syncGrey(from) {
+      const v = Math.max(0, Math.min(255, Math.round(num(from, 128))));
+      els.grey.value = v;
+      els.greyNum.value = v;
+      draw();
+    }
+
+    ["count", "width", "height", "dict"].forEach(id => {
+      els[id].addEventListener("input", draw);
+      els[id].addEventListener("change", draw);
+    });
+    els.grey.addEventListener("input", () => syncGrey(els.grey));
+    els.greyNum.addEventListener("input", () => syncGrey(els.greyNum));
+    els.download.addEventListener("click", () => {
+      try {
+        const opt = layout();
+        canvasToPng(els.sheet, `aruco_${opt.count}_${opt.width}x${opt.height}.png`);
+      } catch (e) {
+        els.err.textContent = e.message;
+      }
+    });
+
+    function canvasToPng(canvas, filename) {
+      if (canvas.toBlob) {
+        canvas.toBlob(blob => {
+          if (!blob) { fallbackDownload(canvas, filename); return; }
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = filename;
+          a.click();
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }, "image/png");
+        return;
+      }
+      fallbackDownload(canvas, filename);
+    }
+
+    function fallbackDownload(canvas, filename) {
+      const a = document.createElement("a");
+      a.href = canvas.toDataURL("image/png");
+      a.download = filename;
+      a.click();
+    }
+
+    draw();
+  </script>
+</body>
+</html>
