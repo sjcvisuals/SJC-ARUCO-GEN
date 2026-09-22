@@ -330,24 +330,24 @@
         <div>
           <div class="hint" style="margin-bottom:6px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">Markers</div>
           <div class="seg" id="countMode" role="group" aria-label="Marker count mode">
-            <button type="button" data-count-mode="density" class="on">Per m²</button>
-            <button type="button" data-count-mode="custom">Custom</button>
+            <button type="button" data-count-mode="density">Per m²</button>
+            <button type="button" data-count-mode="custom" class="on">Custom</button>
           </div>
         </div>
-        <label id="densityWrap">Per square metre
+        <label id="densityWrap" class="hidden">Per square metre
           <input id="density" type="number" min="0.1" max="100" step="0.1" value="4">
         </label>
-        <label id="countWrap" class="hidden">Marker count
+        <label id="countWrap">Marker count
           <input id="count" type="number" min="1" max="1000" value="64">
         </label>
         <div>
           <div class="hint" style="margin-bottom:6px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">Size</div>
           <div class="seg" id="sizeMode" role="group" aria-label="Size mode">
-            <button type="button" data-size-mode="resolution">Resolution</button>
-            <button type="button" data-size-mode="led" class="on">LED wall</button>
+            <button type="button" data-size-mode="resolution" class="on">Resolution</button>
+            <button type="button" data-size-mode="led">LED wall</button>
           </div>
         </div>
-        <div id="resWrap" class="hidden">
+        <div id="resWrap">
           <div class="row">
             <label>Width
               <input id="width" type="number" min="32" value="3840">
@@ -361,7 +361,7 @@
             <input id="pitch" type="number" min="0" step="0.01" placeholder="Needed for per m²">
           </label>
         </div>
-        <div id="ledWrap">
+        <div id="ledWrap" class="hidden">
           <label>Panel
             <input id="panelFilter" class="filter" type="search" placeholder="Filter panels">
             <select id="panel"></select>
@@ -509,8 +509,8 @@
       fmt: document.getElementById("fmt")
     };
     let fileFmt = "png";
-    let countMode = "density";
-    let sizeMode = "led";
+    let countMode = "custom";
+    let sizeMode = "resolution";
     let inkMode = "grey";
 
     function fillPanelSelect() {
